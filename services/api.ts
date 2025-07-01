@@ -1,6 +1,6 @@
 import { Movie, MovieDetails } from '../types/Movies';
 
-const API_KEY = '62b781005e1e580909aeda6f9f3bcb46'; // Substitua pela sua chave
+const API_KEY = process.env.EXPO_PUBLIC_TMDB_API_KEY;
 const BASE_URL = 'https://api.themoviedb.org/3';
 const IMAGE_BASE_URL = 'https://image.tmdb.org/t/p/w500';
 
