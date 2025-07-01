@@ -1,75 +1,136 @@
-import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
-
-import { HelloWave } from '@/components/HelloWave';
-import ParallaxScrollView from '@/components/ParallaxScrollView';
-import { ThemedText } from '@/components/ThemedText';
-import { ThemedView } from '@/components/ThemedView';
+import { router } from 'expo-router';
+import React, { useEffect, useState } from 'react';
+import { Alert, FlatList, StyleSheet, Text, View } from 'react-native';
+import { Input } from '../../components/ui/Input';
+import { MovieCard } from '../../components/ui/MovieCard';
+import { colors } from '../../constants/Colors';
+import { api } from '../../services/api';
+import { FavoriteMovie, Movie } from '../../types/Movies';
 
 export default function HomeScreen() {
+  const [movies, setMovies] = useState<Movie[]>([]);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [favorites, setFavorites] = useState<FavoriteMovie[]>([]);
+
+  useEffect(() => {
+    loadPopularMovies();
+  }, []);
+
+  const loadPopularMovies = async () => {
+    setLoading(true);
+    const popularMovies = await api.getPopularMovies();
+    setMovies(popularMovies);
+    setLoading(false);
+  };
+
+  const searchMovies = async (query: string) => {
+    if (!query.trim()) {
+      loadPopularMovies();
+      return;
+    }
+
+    setLoading(true);
+    const searchResults = await api.searchMovies(query);
+    setMovies(searchResults);
+    setLoading(false);
+  };
+
+  const handleSearch = (text: string) => {
+    setSearchQuery(text);
+    searchMovies(text);
+  };
+
+  const handleMoviePress = (movie: Movie) => {
+    router.push(`/movie/${movie.id}`);
+  };
+
+  const handleFavorite = (movie: Movie) => {
+    const isFavorite = favorites.some(fav => fav.id === movie.id);
+    
+    if (isFavorite) {
+      setFavorites(prev => prev.filter(fav => fav.id !== movie.id));
+      Alert.alert('Removido', 'Filme removido dos favoritos');
+    } else {
+      const newFavorite: FavoriteMovie = {
+        id: movie.id,
+        title: movie.title,
+        poster_path: movie.poster_path,
+        vote_average: movie.vote_average,
+        addedAt: new Date().toISOString(),
+      };
+      setFavorites(prev => [...prev, newFavorite]);
+      Alert.alert('Adicionado', 'Filme adicionado aos favoritos');
+    }
+  };
+
+  const renderMovieItem = ({ item }: { item: Movie }) => (
+    <MovieCard
+      movie={item}
+      onPress={() => handleMoviePress(item)}
+      onFavorite={() => handleFavorite(item)}
+      isFavorite={favorites.some(fav => fav.id === item.id)}
+    />
+  );
+
   return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
-      headerImage={
-        <Image
-          source={require('@/assets/images/partial-react-logo.png')}
-          style={styles.reactLogo}
+    <View style={styles.container}>
+      <View style={styles.searchContainer}>
+        <Input
+          placeholder="Buscar filmes..."
+          value={searchQuery}
+          onChangeText={handleSearch}
+          style={styles.searchInput}
         />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Welcome!</ThemedText>
-        <HelloWave />
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 1: Try it</ThemedText>
-        <ThemedText>
-          Edit <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> to see changes.
-          Press{' '}
-          <ThemedText type="defaultSemiBold">
-            {Platform.select({
-              ios: 'cmd + d',
-              android: 'cmd + m',
-              web: 'F12',
-            })}
-          </ThemedText>{' '}
-          to open developer tools.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 2: Explore</ThemedText>
-        <ThemedText>
-          {`Tap the Explore tab to learn more about what's included in this starter app.`}
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 3: Get a fresh start</ThemedText>
-        <ThemedText>
-          {`When you're ready, run `}
-          <ThemedText type="defaultSemiBold">npm run reset-project</ThemedText> to get a fresh{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> directory. This will move the current{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> to{' '}
-          <ThemedText type="defaultSemiBold">app-example</ThemedText>.
-        </ThemedText>
-      </ThemedView>
-    </ParallaxScrollView>
+      </View>
+
+      <Text style={styles.sectionTitle}>
+        {searchQuery ? `Resultados para "${searchQuery}"` : 'Filmes Populares'}
+      </Text>
+
+      <FlatList
+        data={movies}
+        renderItem={renderMovieItem}
+        keyExtractor={(item) => item.id.toString()}
+        contentContainerStyle={styles.moviesList}
+        showsVerticalScrollIndicator={false}
+        ListEmptyComponent={
+          <Text style={styles.emptyText}>
+            {loading ? 'Carregando...' : 'Nenhum filme encontrado'}
+          </Text>
+        }
+      />
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  titleContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
+  container: {
+    flex: 1,
+    backgroundColor: colors.background,
   },
-  stepContainer: {
-    gap: 8,
-    marginBottom: 8,
+  searchContainer: {
+    padding: 20,
+    paddingBottom: 10,
   },
-  reactLogo: {
-    height: 178,
-    width: 290,
-    bottom: 0,
-    left: 0,
-    position: 'absolute',
+  searchInput: {
+    marginBottom: 0,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: colors.textPrimary,
+    marginHorizontal: 20,
+    marginBottom: 16,
+  },
+  moviesList: {
+    paddingHorizontal: 20,
+    paddingBottom: 20,
+  },
+  emptyText: {
+    textAlign: 'center',
+    color: colors.textSecondary,
+    fontSize: 16,
+    marginTop: 40,
   },
 });
