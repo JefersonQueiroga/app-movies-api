@@ -38,7 +38,9 @@ export default function HomeScreen() {
 
   const handleSearch = (text: string) => {
     setSearchQuery(text);
-    searchMovies(text);
+    if( text.length > 5){
+      searchMovies(text);
+    }  
   };
 
   const handleMoviePress = (movie: Movie) => {
@@ -96,7 +98,7 @@ export default function HomeScreen() {
         showsVerticalScrollIndicator={false}
         ListEmptyComponent={
           <Text style={styles.emptyText}>
-            {loading ? 'Carregando...' : 'Nenhum filme encontrado'}
+            {loading ? 'Carregando...' : 'Nenhum filme encotrado'}
           </Text>
         }
       />
