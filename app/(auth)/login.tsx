@@ -4,19 +4,37 @@ import { Alert, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
 import { colors } from '../../constants/Colors';
+import { authService } from '../../services/authService';
 
 export default function LoginScreen() {
   const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [senha, setSenha] = useState('');
+  const [loading, setLoading] = useState(false);
 
-  const handleLogin = () => {
-    // Mock - sem validação real por enquanto
-    if (email.trim() && password.trim()) {
-      Alert.alert('Sucesso', 'Login realizado!', [
-        { text: 'OK', onPress: () => router.replace('/(tabs)') }
-      ]);
-    } else {
+  const handleLogin = async () => {
+    if (!email.trim() || !senha.trim()) {
       Alert.alert('Erro', 'Preencha todos os campos');
+      return;
+    }
+
+    setLoading(true);
+    
+    try {
+      const result = await authService.login({
+        email: email.trim(),
+        senha: senha
+      });
+      
+      Alert.alert(
+        'Sucesso!', 
+        `Bem-vindo de volta, ${result.usuario.nome}!`,
+        [{ text: 'OK', onPress: () => router.replace('/(tabs)') }]
+      );
+      
+    } catch (error: any) {
+      Alert.alert('Erro no Login', error.message);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -38,12 +56,16 @@ export default function LoginScreen() {
 
         <Input
           placeholder="Senha"
-          value={password}
-          onChangeText={setPassword}
+          value={senha}
+          onChangeText={setSenha}
           secureTextEntry
         />
 
-        <Button title="Entrar" onPress={handleLogin} />
+        <Button 
+          title={loading ? "Entrando..." : "Entrar"} 
+          onPress={handleLogin}
+          disabled={loading}
+        />
 
         <View style={styles.registerLink}>
           <Text style={styles.registerText}>Não tem conta? </Text>

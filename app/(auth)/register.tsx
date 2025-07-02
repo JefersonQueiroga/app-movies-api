@@ -4,28 +4,51 @@ import { Alert, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
 import { colors } from '../../constants/Colors';
+import { authService } from '../../services/authService';
 
 export default function RegisterScreen() {
-  const [name, setName] = useState('');
+  const [nome, setNome] = useState('');
   const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [senha, setSenha] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [loading, setLoading] = useState(false);
 
-  const handleRegister = () => {
-    // Mock - sem validação real por enquanto
-    if (!name.trim() || !email.trim() || !password.trim() || !confirmPassword.trim()) {
+  const handleRegister = async () => {
+    if (!nome.trim() || !email.trim() || !senha.trim() || !confirmPassword.trim()) {
       Alert.alert('Erro', 'Preencha todos os campos');
       return;
     }
 
-    if (password !== confirmPassword) {
+    if (senha !== confirmPassword) {
       Alert.alert('Erro', 'As senhas não coincidem');
       return;
     }
 
-    Alert.alert('Sucesso', 'Cadastro realizado com sucesso!', [
-      { text: 'OK', onPress: () => router.replace('/(tabs)') }
-    ]);
+    if (senha.length < 6) {
+      Alert.alert('Erro', 'A senha deve ter pelo menos 6 caracteres');
+      return;
+    }
+
+    setLoading(true);
+    
+    try {
+      const result = await authService.cadastrar({
+        nome: nome.trim(),
+        email: email.trim(),
+        senha: senha
+      });
+      
+      Alert.alert(
+        'Sucesso!', 
+        `Bem-vindo(a), ${result.usuario.nome}!`,
+        [{ text: 'OK', onPress: () => router.replace('/(tabs)') }]
+      );
+      
+    } catch (error: any) {
+      Alert.alert('Erro no Cadastro', error.message);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -38,8 +61,8 @@ export default function RegisterScreen() {
       <View style={styles.form}>
         <Input
           placeholder="Nome completo"
-          value={name}
-          onChangeText={setName}
+          value={nome}
+          onChangeText={setNome}
           autoCapitalize="words"
         />
 
@@ -53,8 +76,8 @@ export default function RegisterScreen() {
 
         <Input
           placeholder="Senha"
-          value={password}
-          onChangeText={setPassword}
+          value={senha}
+          onChangeText={setSenha}
           secureTextEntry
         />
 
@@ -65,7 +88,11 @@ export default function RegisterScreen() {
           secureTextEntry
         />
 
-        <Button title="Cadastrar" onPress={handleRegister} />
+        <Button 
+          title={loading ? "Cadastrando..." : "Cadastrar"} 
+          onPress={handleRegister}
+          disabled={loading}
+        />
 
         <View style={styles.loginLink}>
           <Text style={styles.loginText}>Já tem conta? </Text>
